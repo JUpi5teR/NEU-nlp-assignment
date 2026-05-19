@@ -1,0 +1,6 @@
+实验结果汇总
+Direct: 0.00%
+CoT: 90.00%
+Self-Consistency: 90.00%
+Best-of-N: 80.00%
+ToT: 80.00%

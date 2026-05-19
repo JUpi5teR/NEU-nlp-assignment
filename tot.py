@@ -1,32 +1,33 @@
 from model import generate
 from utils import extract_answer
 
-def tot_solve(question, max_depth=2, n_branch=2):
-    """
-    ToT：多步思考 + 多分支探索
-    """
-    # 初始分支
-    branches = ["开始解题："]
+def tot_solve(question, max_depth=1, n_branch=2):
+    try:
+        # 极简版思维树，适配小模型！不再复杂递归
+        prompt = f"""请你一步一步解决这道数学题，只写关键步骤。
+题目：{question}
+输出格式：
+步骤1：
+步骤2：
+答案：数字"""
 
-    # 逐层扩展
-    for d in range(max_depth):
-        new_branches = []
-        for b in branches:
-            prompt = f"""问题：{question}
-当前思考：{b}
-请继续下一步推理："""
-            next_steps = generate(prompt, num_return_sequences=n_branch, temperature=0.7)
-            for step in next_steps:
-                new_branches.append(b + "\n" + step)
-        # 剪枝：保留合理长度
-        branches = [b for b in new_branches if len(b) < 600][:n_branch]
-
-    # 用最优分支生成最终答案
-    best_branch = branches[0] if branches else ""
-    final_prompt = f"""根据以下推理给出这道题的最终数字答案：
-问题：{question}
-推理：{best_branch}
-答案："""
-
-    resp = generate(final_prompt)[0]
-    return extract_answer(resp)
+        steps = []
+        current = f"开始解题：{question}"
+        
+        for d in range(max_depth):
+            branch_answers = []
+            for _ in range(n_branch):
+                res = generate(current + "\n下一步：", temperature=0.6, max_new_tokens=150)
+                ans = extract_answer(res[0])
+                if ans:
+                    branch_answers.append(ans)
+            if branch_answers:
+                best = max(set(branch_answers), key=branch_answers.count)
+                current += f"\n步骤{d+1}：得到答案候选 {best}"
+                steps.append(best)
+        
+        final = generate(f"总结所有步骤，给出最终答案：{current}\n答案：", temperature=0.1)
+        return extract_answer(final[0]) or "0"
+    
+    except:
+        return "0"
